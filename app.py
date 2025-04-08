@@ -5,7 +5,8 @@ import threading
 from bot import run_bot
 
 app = Flask(__name__)
-socketio = SocketIO(app, async_mode='eventlet')
+socketio = SocketIO(app, async_mode='threading')
+
 
 @app.route('/')
 def dashboard():
