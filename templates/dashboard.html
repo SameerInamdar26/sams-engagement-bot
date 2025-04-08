@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bot Dashboard</title>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-6">
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-3xl font-bold mb-4">Engagement Bot Dashboard</h1>
+    <form id="botForm" class="bg-gray-800 p-6 rounded-lg shadow-md space-y-4">
+      <input type="text" name="url" placeholder="Video URL" class="w-full p-2 rounded bg-gray-700 text-white" required>
+      <input type="number" name="total_bots" placeholder="Total Bots" class="w-full p-2 rounded bg-gray-700 text-white" required>
+      <input type="number" name="batch_size" placeholder="Batch Size" class="w-full p-2 rounded bg-gray-700 text-white" required>
+
+      <label class="block font-semibold">Actions:</label>
+      <div class="flex flex-wrap gap-4">
+        <label><input type="checkbox" name="actions" value="view"> View</label>
+        <label><input type="checkbox" name="actions" value="like"> Like</label>
+        <label><input type="checkbox" name="actions" value="subscribe"> Subscribe</label>
+        <label><input type="checkbox" name="actions" value="comment"> Comment</label>
+      </div>
+
+      <button type="submit" class="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700">Start Bots</button>
+    </form>
+
+    <div class="mt-6">
+      <label class="block font-semibold mb-2">Progress:</label>
+      <div class="w-full bg-gray-700 rounded h-6">
+        <div id="progressBar" class="bg-green-500 h-6 rounded" style="width: 0%"></div>
+      </div>
+      <p id="progressText" class="text-sm mt-2">0%</p>
+    </div>
+
+    <div class="mt-6">
+      <label class="block font-semibold mb-2">Live Logs:</label>
+      <div id="logBox" class="bg-black p-4 h-64 overflow-y-scroll rounded font-mono text-sm whitespace-pre-line"></div>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    const form = document.getElementById('botForm');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const logBox = document.getElementById('logBox');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      progressBar.style.width = '0%';
+      progressText.textContent = '0%';
+      logBox.innerText = '';
+
+      const formData = new FormData(form);
+      const data = {
+        url: formData.get('url'),
+        total_bots: formData.get('total_bots'),
+        batch_size: formData.get('batch_size'),
+        actions: formData.getAll('actions')
+      };
+
+      const response = await fetch('/run-bots', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+      });
+
+      const res = await response.json();
+      if (res.status === 'started') {
+        logBox.innerText = '🤖 Bots launched...\n';
+      }
+    });
+
+    socket.on('progress', data => {
+      const percent = Math.round((data.done / data.total) * 100);
+      progressBar.style.width = percent + '%';
+      progressText.textContent = `${percent}% (${data.done}/${data.total})`;
+    });
+
+    socket.on('log', msg => {
+      logBox.innerText += msg + '\n';
+      logBox.scrollTop = logBox.scrollHeight;
+    });
+  </script>
+</body>
+</html>
