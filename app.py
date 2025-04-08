@@ -1,50 +1,34 @@
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
-import asyncio
 import threading
-from bot import run_bot
+import time
+from bot import run_bot  # Assuming you have a bot.py with run_bot function
 
 app = Flask(__name__)
-socketio = SocketIO(app, async_mode='threading')
-
+socketio = SocketIO(app, async_mode='threading')  # 'eventlet' or 'gevent' can break on Render
 
 @app.route('/')
-def dashboard():
+def index():
     return render_template('dashboard.html')
 
-@app.route('/run-bots', methods=['POST'])
-def run_bots():
-    data = request.json
-    url = data['url']
+@app.route('/start-bot', methods=['POST'])
+def start_bot():
+    data = request.get_json()
+    video_url = data['video_url']
     total_bots = int(data['total_bots'])
     batch_size = int(data['batch_size'])
-    actions = data['actions']
+    actions = data['actions']  # e.g., ['view', 'like']
 
-    threading.Thread(target=start_bots, args=(url, total_bots, batch_size, actions)).start()
+    def bot_task():
+        run_bot(video_url, total_bots, batch_size, actions, socketio)
 
-    return jsonify({'status': 'started'})
+    threading.Thread(target=bot_task).start()
+    return jsonify({'status': 'Bot started'})
 
-def start_bots(url, total_bots, batch_size, actions):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    total = total_bots
-    done = 0
-
-    async def run_batch():
-        nonlocal done
-        for i in range(0, total_bots, batch_size):
-            tasks = []
-            for j in range(min(batch_size, total_bots - i)):
-                bot_id = i + j + 1
-                socketio.emit('log', f'🚀 Bot {bot_id} started')
-                tasks.append(run_bot(url, actions, bot_id))
-            await asyncio.gather(*tasks)
-            done += len(tasks)
-            socketio.emit('progress', {'done': done, 'total': total})
-        socketio.emit('log', '✅ All bots completed')
-
-    loop.run_until_complete(run_batch())
+@socketio.on('connect')
+def handle_connect():
+    print('Client connected')
+    emit('progress', {'data': 'Connected to server'})
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=True, allow_unsafe_werkzeug=True)
