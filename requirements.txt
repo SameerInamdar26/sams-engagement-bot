@@ -3,3 +3,4 @@ playwright
 requests
 tqdm
 fake_useragent
+flask_socketio
