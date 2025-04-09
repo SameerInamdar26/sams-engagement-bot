@@ -7,3 +7,5 @@ playwright
 tqdm
 fake_useragent
 eventlet
+gevent  
+gunicorn 
