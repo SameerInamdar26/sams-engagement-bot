@@ -1,7 +1,12 @@
-services: 
-"  - type: web" 
-"    name: samtube-bot-tool" 
-"    env: python" 
-"    buildCommand: pip install -r requirements.txt && playwright install" 
-"    startCommand: python app.py" 
-"    plan: free" 
+services:
+  - type: web
+    name: engagement-bot
+    env: docker
+    plan: free
+    repo: https://github.com/SameerInamdar26/samtube-bot-tool.git
+    region: oregon
+    dockerContext: .
+    dockerfilePath: Dockerfile
+    envVars:
+      - key: PORT
+        value: 10000
