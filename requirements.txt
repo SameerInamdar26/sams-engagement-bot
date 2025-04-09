@@ -9,3 +9,6 @@ fake_useragent
 eventlet
 gevent  
 gunicorn 
+gevent
+flask-socketio[gevent]
+
