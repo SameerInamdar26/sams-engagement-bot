@@ -1,7 +1,7 @@
-services:
-  - type: web
-    name: engagement-bot
-    env: python
-    buildCommand: pip install -r requirements.txt && playwright install
-    startCommand: python app.py
-    plan: free
+services: 
+"  - type: web" 
+"    name: samtube-bot-tool" 
+"    env: python" 
+"    buildCommand: pip install -r requirements.txt && playwright install" 
+"    startCommand: python app.py" 
+"    plan: free" 

@@ -1,6 +1,9 @@
+
+
 flask
-playwright
+flask_socketio
 requests
+playwright
 tqdm
 fake_useragent
-flask_socketio
+eventlet

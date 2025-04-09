@@ -1,86 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Bot Dashboard</title>
-  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SamTube Bot Dashboard</title>
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-900 text-white p-6">
-  <div class="max-w-3xl mx-auto">
-    <h1 class="text-3xl font-bold mb-4">Engagement Bot Dashboard</h1>
-    <form id="botForm" class="bg-gray-800 p-6 rounded-lg shadow-md space-y-4">
-      <input type="text" name="url" placeholder="Video URL" class="w-full p-2 rounded bg-gray-700 text-white" required>
-      <input type="number" name="total_bots" placeholder="Total Bots" class="w-full p-2 rounded bg-gray-700 text-white" required>
-      <input type="number" name="batch_size" placeholder="Batch Size" class="w-full p-2 rounded bg-gray-700 text-white" required>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #111827;
+      color: #fff;
+    }
 
-      <label class="block font-semibold">Actions:</label>
+    .glow {
+      text-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6;
+    }
+
+    .progress-bar {
+      transition: width 0.3s ease;
+    }
+
+    .card {
+      background: #1f2937;
+      border-radius: 1rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+
+    input, select, textarea {
+      background-color: #374151 !important;
+      border: 1px solid #4b5563 !important;
+      color: white !important;
+    }
+
+    label {
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body class="p-6">
+  <div class="max-w-3xl mx-auto card p-8">
+    <h1 class="text-3xl font-bold glow text-center mb-6">🎯 SamTube Engagement Bot</h1>
+
+    <form id="bot-form" class="space-y-4">
+      <label>Video URL:</label>
+      <input type="text" id="video_url" class="w-full p-2 rounded" required />
+
+      <label>Total Bots:</label>
+      <input type="number" id="total_bots" class="w-full p-2 rounded" min="1" required />
+
+      <label>Batch Size:</label>
+      <input type="number" id="batch_size" class="w-full p-2 rounded" min="1" required />
+
+      <label>Bot Actions:</label>
       <div class="flex flex-wrap gap-4">
-        <label><input type="checkbox" name="actions" value="view"> View</label>
-        <label><input type="checkbox" name="actions" value="like"> Like</label>
-        <label><input type="checkbox" name="actions" value="subscribe"> Subscribe</label>
-        <label><input type="checkbox" name="actions" value="comment"> Comment</label>
+        <label><input type="checkbox" value="view" class="action-check"> View</label>
+        <label><input type="checkbox" value="like" class="action-check"> Like</label>
+        <label><input type="checkbox" value="subscribe" class="action-check"> Subscribe</label>
+        <label><input type="checkbox" value="share" class="action-check"> Share</label>
+        <label><input type="checkbox" value="comment" class="action-check"> Comment</label>
       </div>
 
-      <button type="submit" class="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700">Start Bots</button>
+      <label>Custom Comments (optional, one per line):</label>
+      <textarea id="custom_comments" class="w-full p-2 rounded" rows="4" placeholder="Great video!&#10;Loved it!"></textarea>
+
+      <button type="submit" class="mt-4 bg-blue-600 hover:bg-blue-800 text-white font-semibold py-2 px-4 rounded w-full transition-all">
+        🚀 Start Bots
+      </button>
     </form>
 
     <div class="mt-6">
-      <label class="block font-semibold mb-2">Progress:</label>
-      <div class="w-full bg-gray-700 rounded h-6">
-        <div id="progressBar" class="bg-green-500 h-6 rounded" style="width: 0%"></div>
+      <label class="block mb-2">Progress:</label>
+      <div class="w-full bg-gray-700 h-5 rounded">
+        <div id="progress-bar" class="h-full bg-green-500 progress-bar rounded text-xs text-center text-black font-bold">0%</div>
       </div>
-      <p id="progressText" class="text-sm mt-2">0%</p>
-    </div>
-
-    <div class="mt-6">
-      <label class="block font-semibold mb-2">Live Logs:</label>
-      <div id="logBox" class="bg-black p-4 h-64 overflow-y-scroll rounded font-mono text-sm whitespace-pre-line"></div>
+      <p id="status" class="mt-4 text-center text-green-400 font-semibold"></p>
     </div>
   </div>
 
   <script>
     const socket = io();
-    const form = document.getElementById('botForm');
-    const progressBar = document.getElementById('progressBar');
-    const progressText = document.getElementById('progressText');
-    const logBox = document.getElementById('logBox');
 
-    form.addEventListener('submit', async (e) => {
+    document.getElementById("bot-form").addEventListener("submit", function (e) {
       e.preventDefault();
-      progressBar.style.width = '0%';
-      progressText.textContent = '0%';
-      logBox.innerText = '';
 
-      const formData = new FormData(form);
-      const data = {
-        url: formData.get('url'),
-        total_bots: formData.get('total_bots'),
-        batch_size: formData.get('batch_size'),
-        actions: formData.getAll('actions')
-      };
+      const video_url = document.getElementById("video_url").value;
+      const total_bots = parseInt(document.getElementById("total_bots").value);
+      const batch_size = parseInt(document.getElementById("batch_size").value);
+      const actions = Array.from(document.querySelectorAll(".action-check:checked")).map(cb => cb.value);
+      const custom_comments_text = document.getElementById("custom_comments").value.trim();
+      const custom_comments = custom_comments_text ? custom_comments_text.split("\n") : [];
 
-      const response = await fetch('/run-bots', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
+      socket.emit("start_bots", {
+        video_url,
+        total_bots,
+        batch_size,
+        actions,
+        custom_comments
       });
 
-      const res = await response.json();
-      if (res.status === 'started') {
-        logBox.innerText = '🤖 Bots launched...\n';
-      }
+      document.getElementById("status").innerText = "🚀 Bots started...";
     });
 
-    socket.on('progress', data => {
-      const percent = Math.round((data.done / data.total) * 100);
-      progressBar.style.width = percent + '%';
-      progressText.textContent = `${percent}% (${data.done}/${data.total})`;
+    socket.on("progress_update", (data) => {
+      const progressBar = document.getElementById("progress-bar");
+      progressBar.style.width = data.progress + "%";
+      progressBar.innerText = data.progress + "%";
     });
 
-    socket.on('log', msg => {
-      logBox.innerText += msg + '\n';
-      logBox.scrollTop = logBox.scrollHeight;
+    socket.on("bot_done", (data) => {
+      document.getElementById("status").innerText = data.status;
     });
   </script>
 </body>
