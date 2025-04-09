@@ -111,4 +111,6 @@ def launch_bot(bot_id, video_url, actions, proxy, user_agent, comment_text):
         browser.close()
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    socketio.run(app, host='0.0.0.0', port=port, debug=True)
